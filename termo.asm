@@ -12,6 +12,8 @@ Palavra: var #6			 ; Palavra a ser adivinhada
 PalavraTentativa: var #6 ; Palavra chutada
 NumTentativa: var #1	 ; Tentativa atual
 Letra: var #1			 ; Letra lida pelo teclado
+Ganhou: var #1			 ; Variavel de vitoria
+JogarNovamente: var #1	 ; Variavel para jogar novamente
 
 ; Mensagens que serao impressas na tela
 textoInicial: string "Digite uma palavra de 5 letras:"
@@ -24,15 +26,20 @@ vermelho1:    string "Letra vermelha:"
 vermelho2:    string " Letra errada"
 vitoria:      string "Voce Venceu! :)"
 derrota:      string "Voce Perdeu! :/"
+textoPalavra: string "Resposta: "
 jogardenovo:  string "Quer jogar novamente? <s/n>"
+linhabranca:  string "                                        "
 
 ;---------- PROGRAMA PRINCIPAL ----------
 main:
 	; Inicializando e zerando as variaveis globais:
 	loadn r0, #0
 	store NumTentativa, r0	; Contador de Tentativas
+	store Ganhou, r0
+	store JogarNovamente, r0
 	load r1, NumTentativa
 	loadn r2, #6
+	loadn r3, #1
 
 	call inputPalavra ; Ler a palavra a ser adivinhada
 
@@ -42,11 +49,21 @@ main:
 		call checarPalavra
 		inc r1
 		store NumTentativa, r1
-	;	call TestaFim
+		call TestaVitoria
+		load r4, Ganhou
+		cmp r4, r3
+		jeq fimJogo
 		cmp r1, r2
 		jne loopjogo
 		
-		;call jogarDenovo
+		fimJogo:
+		call jogarDenovo
+		call ApagaTela
+		load r4, JogarNovamente
+		cmp r4, r3
+		jeq main
+		
+		
 
 	halt ; finalizacao do termo
 
@@ -179,29 +196,29 @@ chamaJogo:
 	call ApagaTela
 	
 	;print area primeira tentativa
-	loadn r0, #18
+	loadn r0, #58
 	loadn r1, #espaco
 	loadn r2, #0
 	call ImprimeStr
 	
 	;print area segunda tentativa
-	loadn r0, #58
+	loadn r0, #98
 	call ImprimeStr
 	
 	;print area terceira tentativa
-	loadn r0, #98
-	call ImprimeStr
-
-	;print area quarta tentativa
 	loadn r0, #138
 	call ImprimeStr
 
-	;print area quinta tentativa
+	;print area quarta tentativa
 	loadn r0, #178
 	call ImprimeStr
 
-	;print area sexta tentativa
+	;print area quinta tentativa
 	loadn r0, #218
+	call ImprimeStr
+
+	;print area sexta tentativa
+	loadn r0, #258
 	call ImprimeStr
 	
 	;print texto letra verde
@@ -376,6 +393,7 @@ inputPalavraTentativa:	; Le a palavra a ser adivinhada
 ;---------- ESCREVER LETRA VERDE ----------
 letraVerde:	; escreve a letra verde
 	push fr
+	push r0
 	push r1 ; NumTentativa
 	push r2 ; posicao da letra (inicialmente 18)
 	push r3 ; linha = 40
@@ -384,7 +402,7 @@ letraVerde:	; escreve a letra verde
 	push r6
 	
 	load r1, NumTentativa
-	loadn r2, #18
+	loadn r2, #58
 	loadn r3, #40
 	loadn r4, #0
 	
@@ -417,12 +435,14 @@ letraVerde:	; escreve a letra verde
 	pop r3
 	pop r2
 	pop r1
+	pop r0
 	pop fr
 	rts
 
 ;---------- ESCREVER LETRA AMARELA ----------
 letraAmarela:	; escreve a letra amarela
 	push fr
+	push r0
 	push r1 ; NumTentativa
 	push r2 ; posicao da letra (inicialmente 18)
 	push r3 ; linha = 40
@@ -431,7 +451,7 @@ letraAmarela:	; escreve a letra amarela
 	push r6
 	
 	load r1, NumTentativa
-	loadn r2, #18
+	loadn r2, #58
 	loadn r3, #40
 	loadn r4, #0
 	
@@ -464,12 +484,14 @@ letraAmarela:	; escreve a letra amarela
 	pop r3
 	pop r2
 	pop r1
+	pop r0
 	pop fr
 	rts
 
 ;---------- ESCREVER LETRA VERMELHA ----------
 letraVermelha:	; escreve a letra vermelha
 	push fr
+	push r0
 	push r1 ; NumTentativa
 	push r2 ; posicao da letra (inicialmente 18)
 	push r3 ; linha = 40
@@ -478,7 +500,7 @@ letraVermelha:	; escreve a letra vermelha
 	push r6
 	
 	load r1, NumTentativa
-	loadn r2, #18
+	loadn r2, #58
 	loadn r3, #40
 	loadn r4, #0
 	
@@ -511,5 +533,136 @@ letraVermelha:	; escreve a letra vermelha
 	pop r3
 	pop r2
 	pop r1
+	pop r0
+	pop fr
+	rts
+
+;---------- TESTA VITORIA ----------
+TestaVitoria: ; verifica se o jogador venceu o jogo
+	push fr
+	push r0 ; ponteiro palavra certa
+	push r1 ; ponteiro palavra tentada
+	push r2 ; letra palavra certa
+	push r3 ; letra palavra tentada
+	push r4 ; contador
+	push r5 ; tamanho da palavra
+	push r6 ; se ganhou a variavel vai para 1
+	
+	loadn r0, #Palavra
+	loadn r1, #PalavraTentativa
+	loadn r4, #0
+	loadn r5, #5
+	loadn r6, #1
+	
+	loop_Vitoria:
+		loadi r2, r0
+		loadi r3, r1
+		cmp r2, r3
+		jne fim_Vitoria
+		inc r0
+		inc r1
+		inc r4
+		cmp r4, r5
+		jne loop_Vitoria
+	
+	store Ganhou, r6
+	
+	fim_Vitoria:
+	
+	pop r6
+	pop r5
+	pop r4
+	pop r3
+	pop r2
+	pop r1
+	pop r0
+	pop fr
+	rts
+
+;---------- JOGAR DENOVO ----------
+jogarDenovo: ; printa se o jogador venceu ou perdeu e pergunta se quer recomecar o jogo
+	push fr
+	push r0
+	push r1
+	push r2
+	push r3
+	push r4
+	push r5
+	push r6
+
+	;limpar as regras da tela
+	loadn r0, #400
+	loadn r1, #linhabranca
+	loadn r2, #0
+	call ImprimeStr
+	loadn r0, #440
+	call ImprimeStr
+	
+	loadn r0, #520
+	call ImprimeStr
+	loadn r0, #560
+	call ImprimeStr
+	
+	loadn r0, #640
+	call ImprimeStr
+	loadn r0, #680
+	call ImprimeStr
+	
+	; verifica se ganhou
+	load r3, Ganhou
+	loadn r4, #1
+	
+	cmp r3, r4
+	jne perdeuJogo
+	
+	;printa frase ganhou jogo
+	loadn r0, #413
+	loadn r1, #vitoria
+	loadn r2, #0
+	call ImprimeStr
+	
+	jmp printarPalavraCerta
+	
+	perdeuJogo:
+	;printa frase perdeu jogo
+	loadn r0, #413
+	loadn r1, #derrota
+	loadn r2, #0
+	call ImprimeStr
+	
+	printarPalavraCerta:
+	loadn r0, #493
+	loadn r1, #textoPalavra
+	loadn r2, #0
+	call ImprimeStr
+	
+	loadn r0, #503
+	loadn r1, #Palavra
+	loadn r2, #512
+	call ImprimeStr
+	
+	loadn r0, #567
+	loadn r1, #jogardenovo
+	loadn r2, #0
+	call ImprimeStr
+	
+	call digLetra
+	load r5, Letra
+	loadn r6, #'s'
+	
+	cmp r5, r6
+	jne fimfim
+	
+	store JogarNovamente, r4 ; JogarNovamente = 1
+	
+	fimfim:
+	
+	pop r6
+	pop r5
+	pop r4
+	pop r3
+	pop r2
+	pop r1
+	pop r0
 	pop fr
 	rts
