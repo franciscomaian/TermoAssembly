@@ -3,17 +3,19 @@
 ; Autores:
 ;	Francisco Maian   nUSP: 14570890
 ;	Julia Pravato	  nUSP: 14615054
-;	Leticia Barbanera nUSP: 
+;	Leticia Barbanera nUSP: 14588642
 ;
 
 jmp main
 
-Palavra: var #6			 ; Palavra a ser adivinhada
-PalavraTentativa: var #6 ; Palavra chutada
-NumTentativa: var #1	 ; Tentativa atual
-Letra: var #1			 ; Letra lida pelo teclado
-Ganhou: var #1			 ; Variavel de vitoria
-JogarNovamente: var #1	 ; Variavel para jogar novamente
+Palavra: var #6			   ; Palavra a ser adivinhada
+PalavraTentativa: var #6   ; Palavra chutada
+PalavraVerificacao: var #6 ; Palavra verificada
+PalavraVerde: var #5	   ; Locais que foi detectado a letra certa na posicao certa
+NumTentativa: var #1	   ; Tentativa atual
+Letra: var #1			   ; Letra lida pelo teclado
+Ganhou: var #1			   ; Variavel de vitoria
+JogarNovamente: var #1	   ; Variavel para jogar novamente
 
 ; Mensagens que serao impressas na tela
 textoInicial: string "Digite uma palavra de 5 letras:"
@@ -24,6 +26,7 @@ amarelo1:     string "Letra amarela:"
 amarelo2:     string " Letra certa na posicao errada"
 vermelho1:    string "Letra vermelha:"
 vermelho2:    string " Letra errada"
+apagarletra:  string "Para apagar a letra digite -"
 vitoria:      string "Voce Venceu! :)"
 derrota:      string "Voce Perdeu! :/"
 textoPalavra: string "Resposta: "
@@ -253,6 +256,11 @@ chamaJogo:
 	loadn r1, #vermelho2
 	loadn r2, #0
 	call ImprimeStr
+	
+	loadn r0, #760
+	loadn r1, #apagarletra
+	loadn r2, #0
+	call ImprimeStr
 
 	pop r2
 	pop r1
@@ -293,14 +301,16 @@ checarPalavra:
 	
 	loadn r0, #0 ; contador palavra testada
 	loadn r2, #5
-	loadn r3, #Palavra
+	
+	call resetaPalavras
+	loadn r3, #PalavraVerificacao
 	
 	call inputPalavraTentativa
 	loadn r4, #PalavraTentativa
 	
-	ComparaTentativa:
+	ComparaLetrasVerdes:
 		cmp r0, r2 ; loop ja passou as 5 letras
-		jeq fimChecar
+		jeq InicioComparaTentativa
 		
 		;checa se a letra certa esta na posicao certa
 		add r5, r4, r0
@@ -309,10 +319,26 @@ checarPalavra:
 		loadi r7, r5 ; r7 esta com a letra da palavra certa na mesma posicao da letra testada
 		cmp r6, r7 ; se as duas letras forem a mesma printa verde
 		jeq PrintarVerde
+		inc r0
+		jmp ComparaLetrasVerdes
+	
+	PrintarVerde:
+		call letraVerde
+		inc r0
+		jmp ComparaLetrasVerdes
+		
+	InicioComparaTentativa:
+	loadn r0, #0 ; contador palavra certa
+	
+	ComparaTentativa:
+		loadn r1, #0 ; contador palavra certa
+		cmp r0, r2 ; loop ja passou as 5 letras
+		jeq fimChecar
 		
 		;checa se a letra certa esta na posicao errada
-		loadn r1, #0 ; contador palavra certa
 		ComparaAmarelo:
+			add r5, r4, r0
+			loadi r6, r5 ; r6 esta com a letra testada
 			add r5, r3, r1
 			loadi r7, r5 ; r7 esta com a letra da palavra certa na posicao r1
 			cmp r6, r7
@@ -325,11 +351,6 @@ checarPalavra:
 		call letraVermelha
 		inc r0
 		jmp ComparaTentativa
-	
-		PrintarVerde:
-			call letraVerde
-			inc r0
-			jmp ComparaTentativa
 		
 		PrintarAmarelo:
 			call letraAmarela
@@ -359,27 +380,76 @@ inputPalavraTentativa:	; Le a palavra a ser adivinhada
 	push r2 ; ponteiro para a palavra
 	push r3 ; palavra[r2+r1]
 	push r4 ; tamanho da palavra
+	push r5 ; NumTentativa
+	push r6 ; posicao da letra na tela
+	push r7
 
 	loadn r1, #0		; contador de quantidade de letras
 	loadn r2, #PalavraTentativa	; ponteiro para palavra
 	loadn r4, #5		; Tamanho da palavra
-
-   inputPalavraTentativa_Loop:
+	load r5, NumTentativa
+	loadn r6, #18
+	loadn r7, #40
+	
+	;achar linha da palavra
+	linhaPalavraTentativa:
+		add r6, r6, r7
+		cmp r1, r5
+		inc r1
+		jne linhaPalavraTentativa
+	
+	loadn r1, #0
+   	inputPalavraTentativa_Loop:
 		call digLetra	; Espera que uma tecla seja digitada e salva na variavel global "Letra"
 	   	load r0, Letra	; Letra --> r0
+	   	
+	   	loadn r3, #'-'
+	   	cmp r0, r3
+	   	jeq backspace
 
 		add r3, r2, r1
 		storei r3, r0	; palavra[r2] = Letra
-
+		
+		;printar a letra em branco
+		outchar r0, r6
+		inc r6
+		
 		inc r1
 		cmp r1, r4						; verifica se o tamanho da palavra eh 5
 		jne inputPalavraTentativa_Loop	; Se for, vai para o jogo
+		jmp fim_backspace
+		
+		backspace:
+		loadn r3, #0
+		cmp r1, r3
+		jeq inputPalavraTentativa_Loop
+		loadn r3, #'_'
+		dec r6
+		dec r1
+		outchar r3, r6
+		jmp inputPalavraTentativa_Loop
+		
+		fim_backspace:
+		
+		call digLetra	; Espera que uma tecla seja digitada e salva na variavel global "Letra"
+	   	load r0, Letra	; Letra --> r0
+	   	
+	   	loadn r3, #'-'
+	   	cmp r0, r3
+	   	jeq backspace
+	   	
+	   	loadn r3, #13
+	   	cmp r3, r0
+	   	jne fim_backspace
 				
 	;Coloca \0 no final da palavra
 	loadn r0, #0
 	add r3, r2, r1
 	storei r3, r0	; palavra[r2] = /0
 
+	pop r7
+	pop r6
+	pop r5
 	pop r4
 	pop r3
 	pop r2
@@ -388,8 +458,9 @@ inputPalavraTentativa:	; Le a palavra a ser adivinhada
 	pop fr
 	rts
 
-;r6 = letra a ser printada
 ;r0 = posicao da letra
+;r6 = letra a ser printada
+;r5 = ponteiro pra PalavraVerificacao
 ;---------- ESCREVER LETRA VERDE ----------
 letraVerde:	; escreve a letra verde
 	push fr
@@ -398,13 +469,15 @@ letraVerde:	; escreve a letra verde
 	push r2 ; posicao da letra (inicialmente 18)
 	push r3 ; linha = 40
 	push r4 ; i
-	push r5 ; cor verde
+	push r5
 	push r6
+	push r7 ; cor verde
 	
 	load r1, NumTentativa
 	loadn r2, #58
 	loadn r3, #40
 	loadn r4, #0
+	storei r5, r4
 	
 	LinhaVerde:
 		cmp r1, r4
@@ -425,10 +498,15 @@ letraVerde:	; escreve a letra verde
 	
 	fim_ColunaVerde:
 	
-	loadn r5, #512 ; cor verde
-	add r6, r5, r6
+	loadn r7, #PalavraVerde
+	add r7, r7, r4
+	storei r7, r3
+	
+	loadn r7, #512 ; cor verde
+	add r6, r7, r6
 	outchar r6, r2
 	
+	pop r7
 	pop r6
 	pop r5
 	pop r4
@@ -447,8 +525,9 @@ letraAmarela:	; escreve a letra amarela
 	push r2 ; posicao da letra (inicialmente 18)
 	push r3 ; linha = 40
 	push r4 ; i
-	push r5 ; cor amarela
+	push r5
 	push r6
+	push r7 ; cor amarela
 	
 	load r1, NumTentativa
 	loadn r2, #58
@@ -474,10 +553,21 @@ letraAmarela:	; escreve a letra amarela
 	
 	fim_ColunaAmarela:
 	
-	loadn r5, #2816 ; cor amarela
-	add r6, r5, r6
+	loadn r7, #PalavraVerde
+	add r7, r7, r4
+	loadi r4, r7
+	cmp r4, r3
+	jeq fimAmarelo
+	
+	loadn r4, #0
+	storei r5, r4
+	loadn r7, #2816 ; cor amarela
+	add r6, r7, r6
 	outchar r6, r2
 	
+	fimAmarelo:
+	
+	pop r7
 	pop r6
 	pop r5
 	pop r4
@@ -496,8 +586,9 @@ letraVermelha:	; escreve a letra vermelha
 	push r2 ; posicao da letra (inicialmente 18)
 	push r3 ; linha = 40
 	push r4 ; i
-	push r5 ; cor verde
+	push r5
 	push r6
+	push r7 ; cor vermelha
 	
 	load r1, NumTentativa
 	loadn r2, #58
@@ -523,10 +614,19 @@ letraVermelha:	; escreve a letra vermelha
 	
 	fim_ColunaVermelha:
 	
-	loadn r5, #2304 ; cor vermelha
-	add r6, r5, r6
+	loadn r7, #PalavraVerde
+	add r7, r7, r4
+	loadi r4, r7
+	cmp r4, r3
+	jeq fimVermelho
+	
+	loadn r7, #2304
+	add r6, r7, r6
 	outchar r6, r2
 	
+	fimVermelho:
+	
+	pop r7
 	pop r6
 	pop r5
 	pop r4
@@ -608,6 +708,9 @@ jogarDenovo: ; printa se o jogador venceu ou perdeu e pergunta se quer recomecar
 	loadn r0, #680
 	call ImprimeStr
 	
+	loadn r0, #760
+	call ImprimeStr
+	
 	; verifica se ganhou
 	load r3, Ganhou
 	loadn r4, #1
@@ -658,6 +761,42 @@ jogarDenovo: ; printa se o jogador venceu ou perdeu e pergunta se quer recomecar
 	fimfim:
 	
 	pop r6
+	pop r5
+	pop r4
+	pop r3
+	pop r2
+	pop r1
+	pop r0
+	pop fr
+	rts
+
+;---------- RESETA PALAVRAS ----------
+resetaPalavras:
+	push fr
+	push r0
+	push r1
+	push r2
+	push r3
+	push r4
+	push r5
+	
+	loadn r0, #Palavra
+	loadn r1, #PalavraVerificacao
+	loadn r2, #5
+	loadn r4, #0
+	loadn r5, #PalavraVerde
+	
+	ComparaPalavraVerificacao:
+		loadi r3, r0
+		storei r1, r3
+		storei r5, r2
+		inc r0
+		inc r1
+		inc r4
+		inc r5
+		cmp r2, r4
+		jne ComparaPalavraVerificacao
+	
 	pop r5
 	pop r4
 	pop r3
