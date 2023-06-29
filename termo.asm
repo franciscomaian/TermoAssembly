@@ -1,6 +1,6 @@
-;Termo em Assembly feito para materia SSC0221 - Introducao a Sistemas Computacionais
+; Termo em Assembly feito para materia SSC0221 - Introducao a Sistemas Computacionais
 ;
-;Autores:
+; Autores:
 ;	Francisco Maian   nUSP: 14570890
 ;	Julia Pravato	  nUSP: 14615054
 ;	Leticia Barbanera nUSP: 
@@ -11,7 +11,7 @@ jmp main
 Palavra: var #6			 ; Palavra a ser adivinhada
 PalavraTentativa: var #6 ; Palavra chutada
 NumTentativa: var #1	 ; Tentativa atual
-Letra: var #1			 ; letra lida pelo teclado
+Letra: var #1			 ; Letra lida pelo teclado
 
 ; Mensagens que serao impressas na tela
 textoInicial: string "Digite uma palavra de 5 letras:"
@@ -50,86 +50,87 @@ main:
 
 	halt ; finalizacao do termo
 
-;Metodos:
+; Metodos:
 ;---------- LER PALAVRA ----------
-inputPalavra:	; Le a palavra a ser adivinhada
+inputPalavra:	; leitura da palavra a ser adivinhada
 
 	push fr ; protege o registrador de flags
 	push r0 ; recebe a letra digitada
-	push r1 ; contador de letras (vai ate 5)
+	push r1 ; contador de letras (vai ate 5 letras na palavra a ser adivinhada)
 	push r2 ; ponteiro para a palavra
-	push r3 ; palavra[r2+r1]
+	push r3 ; string palavra [r2+r1]
 	push r4 ; tamanho da palavra
 
-	loadn r1, #0		; contador de quantidade de letras
-	loadn r2, #Palavra	; ponteiro para palavra
-	loadn r4, #5		; Tamanho da palavra
+	loadn r1, #0			; contador de quantidade de letras em 0
+	loadn r2, #Palavra		; ponteiro para palavra
+	loadn r4, #5			; tamanho da palavra
 
-	call printTextoInicial	; Printa a Msn1
+	call printTextoInicial	; printa os textos iniciais na tela 
 
-   inputPalavra_Loop:
-		call digLetra		; Espera que uma tecla seja digitada e salva na variavel global "Letra"
-	   	load r0, Letra				; Letra --> r0
+   inputPalavra_Loop:		; leitura de letras para preencher a palavra a ser adivinhada 
+		call digLetra		; espera que uma tecla seja digitada e salva na variavel global "Letra"
+	   	load r0, Letra		; letra --> r0
 
-		add r3, r2, r1
-		storei r3, r0				; palavra[r2] = Letra
+		add r3, r2, r1		; ponteiro para a palavra a ser adivinhada + index de qual letra na string -> r3
+		storei r3, r0		; palavra[r3] = nova letra
 
-		inc r1
-		cmp r1, r4						; verifica se o tamanho da palavra eh 5
-		jne inputPalavra_Loop			; Se for, vai para o jogo
+		inc r1						; incrementa index da string
+		cmp r1, r4					; verifica se o tamanho da palavra já preencheu 5
+		jne inputPalavra_Loop		; se sim, vai para o jogo, se não retorna para pegar mais uma letra
 				
-	;Coloca \0 no final da palavra
-	loadn r0, #0
-	add r3, r2, r1
-	storei r3, r0				; palavra[r2] = /0
+	; coloca \0 no final da palavra
+	loadn r0, #0			; letra digitada recebe \0
+	add r3, r2, r1			; ponteiro para a palavra a ser adivinhada + index de última letra na string -> r3
+	storei r3, r0			; palavra[r3] = \0
 
-	pop r4
+	pop r4	; resgata os valores dos registradores utilizados na Subrotina da Pilha
 	pop r3
 	pop r2
 	pop r1
 	pop r0	
 	pop fr
-	rts		
+	rts		; retorno de subrotina
 			
 ;---------- LER LETRA ----------
-digLetra:	; Espera que uma tecla seja digitada e salva na variavel global "Letra"
-	push fr
+digLetra:		; espera que uma tecla seja digitada e salva na variavel global "Letra"
+	push fr			; protege o registrador de flags e outros registradores do sistema
 	push r0
 	push r1
 	push r2
-	loadn r1, #255	; Se nao digitar nada vem 255
-	loadn r2, #0	; Logo que programa a FPGA o inchar vem 0
+	
+	loadn r1, #255	; se nao digitar nada vem 255
+	loadn r2, #0	; logo que programa a FPGA o inchar vem 0
 
    digLetra_Loop:
-		inchar r0			; Le o teclado, se nada for digitado = 255
-		cmp r0, r1			;compara r0 com 255
-		jeq digLetra_Loop	; Fica lendo ate' que digite uma tecla valida
-		cmp r0, r2			;compara r0 com 0
-		jeq digLetra_Loop	; Le novamente pois Logo que programa a FPGA o inchar vem 0
+		inchar r0			; le o teclado, se nada for digitado = 255
+		cmp r0, r1			; compara r0 com 255
+		jeq digLetra_Loop	; fica lendo até que digite uma tecla valida
+		cmp r0, r2			; compara r0 com 0
+		jeq digLetra_Loop	; le novamente pois Logo que programa a FPGA o inchar vem 0
 
-	store Letra, r0			; Salva a tecla na variavel global "Letra"
+	store Letra, r0			; salva a tecla na variavel global "Letra"
 	
    digLetra_Loop2:	
-		inchar r0			; Le o teclado, se nada for digitado = 255
-		cmp r0, r1			;compara r0 com 255
-		jne digLetra_Loop2	; Fica lendo ate' que digite uma tecla valida
+		inchar r0			; le o teclado, se nada for digitado = 255
+		cmp r0, r1			; compara r0 com 255
+		jne digLetra_Loop2	; fica lendo até que digite uma tecla valida
 	
-	pop r2
+	pop r2		; resgata os valores dos registradores utilizados na Subrotina da Pilha
 	pop r1
-	pop r0
+	pop r0		
 	pop fr
-	rts
+	rts        ; retorno de subrotina
 
 ;---------- SETA CONFIGURACOES PARA IMPRIMIR TEXTO INICIAL ----------
 printTextoInicial:
-	push fr
+	push fr			; protege o registrador de flags e outros registradores do sistema
 	push r0
 	push r1
 	push r2
 	
-	loadn r0, #0		; Posicao na tela onde a mensagem sera escrita
-	loadn r1, #textoInicial		; Carrega r1 com o endereco do vetor que contem a mensagem
-	loadn r2, #0		; Seleciona a COR da Mensagem (Branco)
+	loadn r0, #0				; posicao na tela onde a mensagem sera escrita
+	loadn r1, #textoInicial		; carrega r1 com o endereco do vetor que contem a mensagem
+	loadn r2, #0				; seleciona a COR da Mensagem (Branco)
 	call ImprimeStr
 	
 	pop r2
